@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#ffe9ad"/><stop offset="1" stop-color="#d99850"/></linearGradient>
+    <linearGradient id="door" x2="1"><stop stop-color="#d83f2f"/><stop offset=".5" stop-color="#ff7048"/><stop offset="1" stop-color="#c9362b"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#24170e"/>
+  <rect x="600" width="600" height="630" fill="url(#bg)"/>
+  <g transform="translate(710 55)">
+    <rect width="390" height="530" rx="34" fill="url(#door)" stroke="#682f17" stroke-width="12"/>
+    <rect x="35" y="70" width="320" height="420" rx="14" fill="#a86e42" stroke="#332218" stroke-width="14"/>
+    <circle cx="115" cy="290" r="52" fill="#ffd3a7"/><rect x="69" y="328" width="92" height="125" rx="30" fill="#f9bd24"/>
+    <circle cx="205" cy="260" r="49" fill="#ffd2ae"/><path d="M135 450l70-140 75 140" fill="#fff9e8"/>
+    <circle cx="285" cy="300" r="58" fill="#e7a06d"/><rect x="230" y="347" width="110" height="105" rx="30" fill="#da4b37"/>
+    <ellipse cx="155" cy="455" rx="62" ry="40" fill="#e98a2d"/><circle cx="200" cy="430" r="34" fill="#f5b466"/>
+    <path d="M195 70v420" stroke="#ffd39a" stroke-width="9" opacity=".45"/>
+  </g>
+  <g font-family="Microsoft YaHei, sans-serif" font-weight="900">
+    <rect x="90" y="110" width="430" height="130" rx="30" fill="#ffc92b" stroke="#703713" stroke-width="10" transform="rotate(-2 305 175)"/>
+    <text x="305" y="195" text-anchor="middle" font-size="84" fill="#4a250f">再挤一个</text>
+    <text x="95" y="320" font-size="34" fill="#ffefc2">都已经这样了……</text>
+    <text x="95" y="373" font-size="46" fill="#ffc82e">要不，再挤一个？</text>
+    <rect x="95" y="430" width="330" height="76" rx="22" fill="#39bfb3" stroke="#fff0c0" stroke-width="4"/>
+    <text x="260" y="481" text-anchor="middle" font-size="32" fill="#173f36">点开就能玩</text>
+  </g>
+</svg>
