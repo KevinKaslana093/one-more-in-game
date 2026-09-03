@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="theme-color" content="#f6a816" />
+    <meta name="description" content="《再挤一个》——把奇怪的乘客塞进电梯，关门还是再挤一个？" />
+    <meta property="og:title" content="再挤一个｜电梯还能塞下吗？" />
+    <meta property="og:description" content="拖动乘客塞进电梯，关门保分，还是冒险再挤一个？" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./src/og-card.svg" />
+    <link rel="icon" href="./src/favicon.svg" type="image/svg+xml" />
+    <title>再挤一个</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <aside class="desktop-panel" aria-label="游戏说明">
+        <div class="mini-logo">再挤一个</div>
+        <p class="tagline">都已经这样了……<br />要不，再挤一个？</p>
+        <div class="desktop-card">
+          <span>本地最高分</span>
+          <strong id="sideBest">0</strong>
+        </div>
+        <div class="desktop-card controls-copy">
+          <strong>电脑操作</strong>
+          <p>鼠标拖拽乘客</p>
+          <p><kbd>←↑↓→</kbd> 移动　<kbd>空格</kbd> 放下</p>
+          <p><kbd>R</kbd> 再挤一个　<kbd>Enter</kbd> 关门</p>
+          <p><kbd>Esc</kbd> 暂停</p>
+        </div>
+        <p class="version">试玩版 v0.1.0</p>
+      </aside>
+
+      <main id="gameShell" class="game-shell">
+        <canvas id="gameCanvas" width="390" height="640" aria-label="电梯装载游戏区域"></canvas>
+
+        <div id="hud" class="hud hidden" aria-live="polite">
+          <button id="pauseBtn" class="icon-button" aria-label="暂停">Ⅱ</button>
+          <div class="hud-pill"><span>楼层</span><b id="floorLabel">1/6</b></div>
+          <div class="hud-pill"><span>分数</span><b id="scoreLabel">0</b></div>
+          <div class="hud-pill heart-pill" id="heartLabel">♥♥♥</div>
+        </div>
+
+        <div id="weightHud" class="weight-hud hidden">
+          <div class="weight-row"><b id="weightLabel">0/240kg</b><span id="multLabel">×1</span></div>
+          <div class="meter"><i id="weightFill"></i></div>
+          <div id="goalLabel" class="goal-label">还需 3 人</div>
+        </div>
+
+        <div id="actionBar" class="action-bar hidden">
+          <button id="riskBtn" class="game-button risk-button" disabled>再挤一个 <b>×2</b></button>
+          <button id="closeBtn" class="game-button close-button" disabled>关门结算</button>
+        </div>
+
+        <div id="toast" class="toast" role="status"></div>
+        <div id="screenLayer" class="screen-layer"></div>
+      </main>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
