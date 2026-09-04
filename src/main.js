@@ -2,6 +2,7 @@ import { FLOOR_CONFIG, PASSENGERS, PROPS, UPGRADES } from './data.js';
 import { canClose, floorScore, mulberry32, totalWeight } from './simulation.js';
 import { loadSave, storeSave } from './storage.js';
 import { GameAudio } from './audio.js';
+import { ArtDirector, artIcon } from './art.js';
 
 const LOGICAL_W = 390;
 const LOGICAL_H = 640;
@@ -44,6 +45,9 @@ class OneMoreGame {
     this.save = loadSave();
     this.audio = new GameAudio();
     this.audio.setMuted(this.save.muted);
+    this.art = new ArtDirector();
+    this.visualClock = 0;
+    this.motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
     this.state = 'title';
     this.floor = 1;
     this.score = 0;
@@ -109,6 +113,8 @@ class OneMoreGame {
     canvas.height = LOGICAL_H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.dpr = dpr;
+    const rect = canvas.getBoundingClientRect();
+    this.artDisplayRatio = rect.height / LOGICAL_H / (rect.width / LOGICAL_W);
   }
 
   clearPointers() {
@@ -132,17 +138,21 @@ class OneMoreGame {
     this.passengers = [];
     ui.sideBest.textContent = this.save.bestScore.toLocaleString('zh-CN');
     layer.innerHTML = `
+      <div class="title-brand" aria-hidden="true">
+        <span class="title-kicker">欢乐早高峰 · 物理小派对</span>
+        <div class="logo">再挤<span>一个</span></div>
+        <span class="title-caption">ONE MORE IN</span>
+      </div>
       <section class="screen title-screen">
-        <div class="logo">再挤一个</div>
-        <p class="subtitle">关门保收益，还是贪心再塞一个？</p>
+        <p class="subtitle">都已经这样了……要不，再挤一个？</p>
         <div class="score-strip">
           <span>最高分<b>${this.save.bestScore.toLocaleString('zh-CN')}</b></span>
           <span>最高楼层<b>${this.save.highFloor} / 6</b></span>
           <span>金币<b>${this.save.coins}</b></span>
         </div>
-        <button class="primary" data-action="start">开始挤</button>
+        <button class="primary" data-action="start" aria-label="开始挤"><span>开始挤</span><span class="button-arrow" aria-hidden="true">▶</span></button>
         <button class="secondary" data-action="challenge">今日挑战</button>
-        <button class="ghost-button" data-action="settings">设置</button>
+        <div class="title-bottom"><span>8 位乘客 · 6 层挑战</span><button class="ghost-button" data-action="settings">设置</button><span>v0.2 美术版</span></div>
       </section>`;
     this.bindLayerActions();
   }
@@ -205,7 +215,7 @@ class OneMoreGame {
         <h2>今天带哪个？</h2>
         <p class="tiny">整局生效，只选一个</p>
         <div class="prop-grid">
-          ${PROPS.map((prop) => `<button class="prop-card ${prop.id === this.selectedProp ? 'selected' : ''}" data-prop="${prop.id}"><span class="prop-icon">${prop.icon}</span><strong>${prop.title}</strong><small>${prop.copy}</small></button>`).join('')}
+          ${PROPS.map((prop) => `<button class="prop-card ${prop.id === this.selectedProp ? 'selected' : ''}" data-prop="${prop.id}"><span class="prop-icon">${artIcon(prop.id)}</span><strong>${prop.title}</strong><small>${prop.copy}</small></button>`).join('')}
         </div>
         <button class="primary" id="launchRun">出发</button>
         <button class="ghost-button" data-action="title">返回首页</button>
@@ -274,6 +284,7 @@ class OneMoreGame {
     this.allowedCount = config.target;
     this.passengers = [];
     this.queue = this.makeQueue(config);
+    this.art.clearRunEffects();
     this.dragged = null;
     this.keyboardPassenger = null;
     this.closingProgress = 0;
@@ -479,7 +490,7 @@ class OneMoreGame {
         <span class="eyebrow">楼层奖励</span>
         <h2>选一个永久加成</h2>
         <div class="upgrade-grid">
-          ${options.map((upgrade) => `<button class="prop-card" data-upgrade="${upgrade.id}"><span class="prop-icon">${upgrade.icon}</span><strong>${upgrade.title}</strong><small>${upgrade.copy}</small></button>`).join('')}
+          ${options.map((upgrade) => `<button class="prop-card" data-upgrade="${upgrade.id}"><span class="prop-icon">${artIcon(upgrade.id)}</span><strong>${upgrade.title}</strong><small>${upgrade.copy}</small></button>`).join('')}
         </div>
         <p class="tiny">仅在本局剩余楼层生效</p>
       </section>`;
@@ -544,7 +555,7 @@ class OneMoreGame {
           <label class="setting-row"><span>高画质</span><input id="qualityToggle" type="checkbox" ${this.save.quality === 'high' ? 'checked' : ''} /></label>
         </div>
         <button class="primary" data-action="close-settings">完成</button>
-        <p class="tiny">进度只保存在这台设备上 · v0.1.0</p>
+        <p class="tiny">进度只保存在这台设备上 · v0.2.0 美术版</p>
       </section>`;
     this.bindLayerActions();
   }
@@ -636,7 +647,8 @@ class OneMoreGame {
     ui.hearts.textContent = '♥'.repeat(Math.max(0, this.hearts)) + '♡'.repeat(Math.max(0, 3 - this.hearts));
     ui.weight.textContent = `${weight}/${config.capacity}kg`;
     ui.weightFill.style.width = `${Math.min(100, ratio * 100)}%`;
-    ui.weightFill.style.filter = ratio > 1 ? 'hue-rotate(320deg) saturate(1.8)' : '';
+    weightHud.classList.toggle('is-over', ratio > 1);
+    weightHud.classList.toggle('is-warning', ratio > .85 && ratio <= 1);
     ui.multiplier.textContent = `×${this.multiplier}`;
     const remaining = Math.max(0, config.target - this.passengers.length);
     ui.goal.textContent = remaining ? `还需 ${remaining} 人 · 剩余 ${Math.ceil(this.timeLeft)} 秒` : `已达标 · 关门或冒险 · ${Math.ceil(this.timeLeft)} 秒`;
@@ -697,6 +709,7 @@ class OneMoreGame {
   }
 
   update(dt) {
+    if (this.state !== 'paused' && this.state !== 'settings') this.visualClock += dt;
     if (this.state === 'playing') {
       this.timeLeft -= dt;
       if (this.timeLeft <= 0) {
@@ -763,8 +776,11 @@ class OneMoreGame {
   }
 
   render() {
+    if (shell.dataset.screen !== this.state) shell.dataset.screen = this.state;
+    const reduced = this.save.reducedMotion || this.motionPreference.matches;
+    shell.dataset.motion = reduced ? 'reduced' : 'full';
     ctx.save();
-    const shakeAmount = this.shake > 0 && !this.save.reducedMotion ? this.shake * 7 : 0;
+    const shakeAmount = this.shake > 0 && !reduced ? this.shake * 7 : 0;
     // Visual-only randomness must not consume the seeded gameplay sequence.
     ctx.translate((Math.random() - .5) * shakeAmount, (Math.random() - .5) * shakeAmount);
     this.drawLobby();
@@ -779,85 +795,39 @@ class OneMoreGame {
     ctx.restore();
   }
 
-  drawLobby() {
-    const gradient = ctx.createLinearGradient(0, 0, 0, LOGICAL_H);
-    gradient.addColorStop(0, '#f4d69b');
-    gradient.addColorStop(.68, '#fff2d1');
-    gradient.addColorStop(1, '#d9a96c');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
-    ctx.strokeStyle = 'rgba(129,81,39,.10)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < LOGICAL_W; x += 48) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, LOGICAL_H); ctx.stroke();
-    }
-    for (let y = 0; y < LOGICAL_H; y += 48) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(LOGICAL_W, y); ctx.stroke();
-    }
-    ctx.fillStyle = '#9c6334';
-    ctx.fillRect(0, 475, LOGICAL_W, 7);
-    ctx.fillStyle = '#c58d50';
-    ctx.fillRect(0, 482, LOGICAL_W, LOGICAL_H - 482);
-    ctx.strokeStyle = '#9f6d3f';
-    for (let y = 500; y < LOGICAL_H; y += 33) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(LOGICAL_W, y); ctx.stroke();
-    }
+  artOptions(extra = {}) {
+    return {
+      clock: this.visualClock,
+      motion: !this.save.reducedMotion && !this.motionPreference.matches,
+      displayRatio: this.artDisplayRatio || 1,
+      danger: this.state === 'playing' && totalWeight(this.passengers) > this.effectiveConfig().capacity,
+      ...extra
+    };
   }
+
+  drawLobby() { this.art.drawLobby(ctx); }
 
   drawElevator() {
-    const frameX = 38;
-    const frameY = 92;
-    const frameW = 314;
-    const frameH = 378;
-    ctx.save();
-    ctx.shadowColor = '#4d240b66';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetY = 7;
-    roundedRectPath(ctx, frameX, frameY, frameW, frameH, 20);
-    const frameGradient = ctx.createLinearGradient(frameX, frameY, frameX + frameW, frameY);
-    frameGradient.addColorStop(0, '#cf3f2f');
-    frameGradient.addColorStop(.5, '#ff7748');
-    frameGradient.addColorStop(1, '#bf352b');
-    ctx.fillStyle = frameGradient;
-    ctx.fill();
-    ctx.shadowColor = 'transparent';
-    roundedRectPath(ctx, 52, 116, 286, 343, 8);
-    ctx.fillStyle = '#31281f';
-    ctx.fill();
-    const inner = ctx.createLinearGradient(0, 125, 0, 455);
-    inner.addColorStop(0, '#d9a96e');
-    inner.addColorStop(1, '#8b5b38');
-    ctx.fillStyle = inner;
-    ctx.fillRect(ELEVATOR.x, ELEVATOR.y, ELEVATOR.w, ELEVATOR.h);
-    ctx.fillStyle = '#f7cf7b';
-    ctx.beginPath(); ctx.ellipse(195, 134, 60, 15, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#362215';
-    roundedRectPath(ctx, 154, 74, 82, 40, 9); ctx.fill();
-    ctx.fillStyle = '#13100e';
-    roundedRectPath(ctx, 160, 80, 70, 28, 5); ctx.fill();
-    ctx.fillStyle = '#ff9d39';
-    ctx.font = '900 20px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(String(this.floor).padStart(2, '0'), 195, 101);
-
-    for (const passenger of this.passengers) this.drawPassenger(passenger);
-
+    this.art.drawElevator(ctx, {
+      floor: this.floor,
+      weightRatio: totalWeight(this.passengers) / this.effectiveConfig().capacity,
+      title: this.state === 'title' || this.state === 'prep',
+      empty: this.state === 'playing' && this.passengers.length === 0,
+      clock: this.visualClock,
+      motion: !this.save.reducedMotion && !this.motionPreference.matches
+    });
+    for (const passenger of this.passengers.filter(p => !p.dragged)) this.drawPassenger(passenger);
+    for (const passenger of this.passengers.filter(p => p.dragged)) this.drawPassenger(passenger);
     if (this.state === 'closing' || this.state === 'result') {
-      const progress = this.state === 'result' ? 1 : clamp(this.closingProgress, 0, 1);
-      const half = ELEVATOR.w * .5 * progress;
-      const doorGradient = ctx.createLinearGradient(ELEVATOR.x, 0, ELEVATOR.x + ELEVATOR.w, 0);
-      doorGradient.addColorStop(0, '#d94b35'); doorGradient.addColorStop(.5, '#f76d46'); doorGradient.addColorStop(1, '#c93b2d');
-      ctx.fillStyle = doorGradient;
-      ctx.fillRect(ELEVATOR.x, ELEVATOR.y, half, ELEVATOR.h);
-      ctx.fillRect(ELEVATOR.x + ELEVATOR.w - half, ELEVATOR.y, half, ELEVATOR.h);
-      ctx.strokeStyle = '#7e2b22'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(ELEVATOR.x + half, ELEVATOR.y); ctx.lineTo(ELEVATOR.x + half, ELEVATOR.y + ELEVATOR.h); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(ELEVATOR.x + ELEVATOR.w - half, ELEVATOR.y); ctx.lineTo(ELEVATOR.x + ELEVATOR.w - half, ELEVATOR.y + ELEVATOR.h); ctx.stroke();
+      this.art.drawDoors(ctx, this.state === 'result' ? 1 : this.closingProgress);
     }
-    ctx.restore();
   }
 
-  drawPassenger(passenger) {
+  drawPassenger(passenger, options = {}) {
+    if (!this.art.passenger(ctx, passenger, this.artOptions(options))) this.drawFallbackPassenger(passenger);
+  }
+
+  drawFallbackPassenger(passenger) {
     ctx.save();
     ctx.translate(passenger.x, passenger.y);
     ctx.rotate(passenger.rotation || 0);
@@ -909,35 +879,25 @@ class OneMoreGame {
 
   drawQueue() {
     if (!['playing', 'closing', 'burst', 'paused', 'settings'].includes(this.state)) return;
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,247,222,.96)';
-    roundedRectPath(ctx, 14, 486, 362, 91, 17); ctx.fill();
-    ctx.strokeStyle = '#9a6237'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = '#644020'; ctx.font = '900 12px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(this.canTakeNext() ? '↑ 拖动最左边这位' : '目标已达成，请做决定', 25, 505);
-    for (let index = 0; index < 3; index += 1) {
-      const definition = this.queue[index];
-      const x = 24 + index * 116;
-      ctx.globalAlpha = index === 0 ? 1 : .55;
-      roundedRectPath(ctx, x, 513, 104, 56, 12);
-      ctx.fillStyle = index === 0 && this.canTakeNext() ? '#fff0a8' : '#e7d2aa'; ctx.fill();
-      ctx.strokeStyle = index === 0 ? '#d58923' : '#b28d61'; ctx.stroke();
-      if (definition) {
-        ctx.fillStyle = definition.color; ctx.beginPath(); ctx.arc(x + 24, 540, 17, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#4c2b17'; ctx.font = '1000 14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(definition.short, x + 24, 545);
-        ctx.textAlign = 'left'; ctx.font = '900 11px sans-serif'; ctx.fillText(definition.name.replace(/.{4}/, '$&\n').split('\n')[0], x + 45, 535);
-        ctx.fillStyle = '#9a4c2c'; ctx.fillText(`${definition.weight}kg`, x + 45, 552);
-      }
-    }
-    ctx.restore();
+    this.art.queue(ctx, {
+      queue: this.queue,
+      canTake: this.canTakeNext(),
+      ...this.artOptions()
+    });
   }
 
   drawTitleCast() {
-    const titleDefs = [PASSENGERS[0], PASSENGERS[1], PASSENGERS[3], PASSENGERS[4], PASSENGERS[2]];
+    const titleDefs = [PASSENGERS[3], PASSENGERS[0], PASSENGERS[4], PASSENGERS[1], PASSENGERS[2]];
     const placements = [
-      { x: 115, y: 300 }, { x: 190, y: 310 }, { x: 255, y: 285 }, { x: 300, y: 345 }, { x: 145, y: 418 }
+      { x: 252, y: 250, w: 142, h: 210 },
+      { x: 111, y: 253, w: 111, h: 181 },
+      { x: 286, y: 295, w: 83, h: 176 },
+      { x: 194, y: 300, w: 149, h: 183 },
+      { x: 112, y: 376, w: 83, h: 70 }
     ];
-    titleDefs.forEach((definition, index) => this.drawPassenger({ ...definition, ...placements[index], w: definition.w * .9, h: definition.h * .9, rotation: 0 }));
+    titleDefs.forEach((definition, index) => {
+      this.drawPassenger({ ...definition, ...placements[index], rotation: 0 }, { hero: true });
+    });
   }
 
   drawParticles() {
